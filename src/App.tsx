@@ -451,42 +451,91 @@ function AppInner() {
   const exportJSON = useCallback(() => {
     const payload: Snapshot = { nodes, edges };
     const text = JSON.stringify(payload, null, 2);
-    navigator.clipboard.writeText(text);
-    alert("JSON이 클립보드에 복사되었습니다.");
+
+    // navigator.clipboard.writeText(text);
+    // alert("JSON이 클립보드에 복사되었습니다.");
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    link.download = `shiplog_${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }, [edges, nodes]);
 
   const importJSON = useCallback(() => {
-    const text = prompt("붙여넣기: nodes/edges JSON");
-    if (!text) return;
-    try {
-      const parsed = JSON.parse(text) as Snapshot;
-      if (!parsed?.nodes || !parsed?.edges) throw new Error("Invalid shape");
+    // const text = prompt("붙여넣기: nodes/edges JSON");
+    // if (!text) return;
+    // try {
+    //   const parsed = JSON.parse(text) as Snapshot;
+    //   if (!parsed?.nodes || !parsed?.edges) throw new Error("Invalid shape");
 
-      // 최소 방어: type 미지정 노드에 기본 type 부여
-      const nextNodes = parsed.nodes.map((n) => ({
-        ...n,
-        type: (n as any).type ?? "concept",
-        data: {
-          title: (n as any).data?.title ?? "Untitled",
-          color: (n as any).data?.color ?? "gray",
-          details: (n as any).data?.details ?? [],
-        } satisfies ConceptNodeData,
-      }));
+    //   // 최소 방어: type 미지정 노드에 기본 type 부여
+    //   const nextNodes = parsed.nodes.map((n) => ({
+    //     ...n,
+    //     type: (n as any).type ?? "concept",
+    //     data: {
+    //       title: (n as any).data?.title ?? "Untitled",
+    //       color: (n as any).data?.color ?? "gray",
+    //       details: (n as any).data?.details ?? [],
+    //     } satisfies ConceptNodeData,
+    //   }));
 
-      const nextEdges = parsed.edges.map((e) => ({
-        ...e,
-        markerEnd: (e as any).markerEnd ?? { type: MarkerType.ArrowClosed },
-        data: {
-          meta: (e as any).data?.meta ?? [],
-        } satisfies ConceptEdgeData,
-      }));
+    //   const nextEdges = parsed.edges.map((e) => ({
+    //     ...e,
+    //     markerEnd: (e as any).markerEnd ?? { type: MarkerType.ArrowClosed },
+    //     data: {
+    //       meta: (e as any).data?.meta ?? [],
+    //     } satisfies ConceptEdgeData,
+    //   }));
 
-      setSelectedNodeId(null);
-      setSelectedEdgeId(null);
-      syncToHistory(nextNodes, nextEdges, true);
-    } catch {
-      alert("JSON 파싱 실패: 형식을 확인하세요.");
-    }
+    //   setSelectedNodeId(null);
+    //   setSelectedEdgeId(null);
+    //   syncToHistory(nextNodes, nextEdges, true);
+    // } catch {
+    //   alert("JSON 파싱 실패: 형식을 확인하세요.");
+    // }
+
+    const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+        try {
+          const text = event.target?.result as string;
+          const parsed = JSON.parse(text) as Snapshot;
+          if (!parsed?.nodes || !parsed?.edges) throw new Error("Invalid shape");
+
+          const nextNodes = parsed.nodes.map((n) => ({
+          ...n,
+          type: (n as any).type ?? "concept",
+          data: {
+            title: (n as any).data?.title ?? "Untitled",
+            color: (n as any).data?.color ?? "gray",
+            details: (n as any).data?.details ?? [],
+          } satisfies ConceptNodeData,
+          }));
+
+          const nextEdges = parsed.edges.map((e) => ({
+          ...e,
+          markerEnd: (e as any).markerEnd ?? { type: MarkerType.ArrowClosed },
+          data: {
+            meta: (e as any).data?.meta ?? [],
+          } satisfies ConceptEdgeData,
+          }));
+
+          setSelectedNodeId(null);
+          setSelectedEdgeId(null);
+          syncToHistory(nextNodes, nextEdges, true);
+        } catch {
+          alert("JSON 파싱 실패: 형식을 확인하세요.");
+        }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
   }, [syncToHistory]);
 
   const onPaneClick = useCallback(() => {
