@@ -3,7 +3,7 @@ import React, { useCallback, useMemo, useReducer, useRef, useState, useEffect } 
 import ReactFlow, {
   Background,
   Controls,
-  //MiniMap,
+  // MiniMap,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -17,12 +17,12 @@ import ReactFlow, {
 
 import type { Node, Edge, Connection } from "reactflow";
 
-
 import "reactflow/dist/style.css";
 
+const DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1vq8efUBvRzQD9yctgLjEwOZwpJx166le?usp=sharing";
 
 /**
- * Outer-Wilds-like Ship Log Editor (MVP)
+ * Log Editor (MVP)
  * - Node CRUD
  * - Node: title + detail items (count badge)
  * - Node size proportional to details count
@@ -43,7 +43,6 @@ function safeParseSnapshot(raw: string | null): Snapshot | null {
   }
 }
 
-
 type ColorLabel = "purple" | "orange" | "green" | "blue" | "gray" | "red" | "yellow" | "teal";
 
 type DetailItem = { id: string; text: string };
@@ -60,49 +59,14 @@ type ConceptEdgeData = {
 };
 
 const colorPalette: Record<ColorLabel, { border: string; header: string; badge: string }> = {
-  purple: { 
-    border: "#8b5cf6", 
-    header: "rgba(139,92,246,0.25)", 
-    badge: "rgba(139,92,246,0.35)" },
-
-  orange: { 
-    border: "#f97316", 
-    header: "rgba(249,115,22,0.25)", 
-    badge: "rgba(249,115,22,0.35)" },
-
-  green: { 
-    border: "#22c55e", 
-    header: "rgba(34,197,94,0.25)", 
-    badge: "rgba(34,197,94,0.35)" },
-
-  blue: { 
-    border: "#3b82f6", 
-    header: "rgba(59,130,246,0.25)", 
-    badge: "rgba(59,130,246,0.35)" },
-
-  gray: { 
-    border: "#9ca3af", 
-    header: "rgba(156,163,175,0.18)", 
-    badge: "rgba(156,163,175,0.28)" },
-
-  red: {
-    border: "#f87171",
-    header: "rgba(248,113,113,0.35)",
-    badge: "rgba(248,113,113,0.45)",
-  },
-
-  yellow: {
-    border: "#facc15",
-    header: "rgba(250,204,21,0.30)",
-    badge: "rgba(250,204,21,0.45)",
-  },
-
-  teal: {
-    border: "#2dd4bf",
-    header: "rgba(45,212,191,0.30)",
-    badge: "rgba(45,212,191,0.45)",
-  },
-
+  purple: { border: "#8b5cf6", header: "rgba(139,92,246,0.25)", badge: "rgba(139,92,246,0.35)" },
+  orange: { border: "#f97316", header: "rgba(249,115,22,0.25)", badge: "rgba(249,115,22,0.35)" },
+  green: { border: "#22c55e", header: "rgba(34,197,94,0.25)", badge: "rgba(34,197,94,0.35)" },
+  blue: { border: "#3b82f6", header: "rgba(59,130,246,0.25)", badge: "rgba(59,130,246,0.35)" },
+  gray: { border: "#9ca3af", header: "rgba(156,163,175,0.18)", badge: "rgba(156,163,175,0.28)" },
+  red: { border: "#f87171", header: "rgba(248,113,113,0.35)", badge: "rgba(248,113,113,0.45)" },
+  yellow: { border: "#facc15", header: "rgba(250,204,21,0.30)", badge: "rgba(250,204,21,0.45)" },
+  teal: { border: "#2dd4bf", header: "rgba(45,212,191,0.30)", badge: "rgba(45,212,191,0.45)" },
 };
 
 function uid(prefix = "id") {
@@ -122,7 +86,7 @@ function ConceptNodeView(props: { data: ConceptNodeData }) {
   return (
     <div
       style={{
-        position: "relative", // ✅ 추가 (Handle 위치용)
+        position: "relative",
         width,
         height,
         border: `2px solid ${c.border}`,
@@ -134,7 +98,6 @@ function ConceptNodeView(props: { data: ConceptNodeData }) {
         flexDirection: "column",
       }}
     >
-      {/* ✅ 연결 핸들 2개: 좌(입력), 우(출력) */}
       <Handle
         type="target"
         position={Position.Left}
@@ -206,7 +169,6 @@ function ConceptNodeView(props: { data: ConceptNodeData }) {
   );
 }
 
-
 type Snapshot = {
   nodes: Node<ConceptNodeData>[];
   edges: Edge<ConceptEdgeData>[];
@@ -228,29 +190,17 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
     case "SET": {
       const record = action.record ?? true;
       if (!record) return { ...state, present: action.snapshot };
-      return {
-        past: [...state.past, state.present],
-        present: action.snapshot,
-        future: [],
-      };
+      return { past: [...state.past, state.present], present: action.snapshot, future: [] };
     }
     case "UNDO": {
       if (state.past.length === 0) return state;
       const prev = state.past[state.past.length - 1];
-      return {
-        past: state.past.slice(0, -1),
-        present: prev,
-        future: [state.present, ...state.future],
-      };
+      return { past: state.past.slice(0, -1), present: prev, future: [state.present, ...state.future] };
     }
     case "REDO": {
       if (state.future.length === 0) return state;
       const next = state.future[0];
-      return {
-        past: [...state.past, state.present],
-        present: next,
-        future: state.future.slice(1),
-      };
+      return { past: [...state.past, state.present], present: next, future: state.future.slice(1) };
     }
     default:
       return state;
@@ -258,7 +208,6 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
 }
 
 function AppInner() {
-  // 초기 데이터
   const initialSnapshot: Snapshot = useMemo(() => {
     const n1: Node<ConceptNodeData> = {
       id: uid("node"),
@@ -270,7 +219,14 @@ function AppInner() {
       id: uid("node"),
       type: "concept",
       position: { x: 520, y: 280 },
-      data: { title: "Ash Twin Project", color: "orange", details: [{ id: uid("d"), text: "에너지/시간 루프 관련" }, { id: uid("d"), text: "22분 단위로 리셋" }] },
+      data: {
+        title: "Ash Twin Project",
+        color: "orange",
+        details: [
+          { id: uid("d"), text: "에너지/시간 루프 관련" },
+          { id: uid("d"), text: "22분 단위로 리셋" },
+        ],
+      },
     };
     const e1: Edge<ConceptEdgeData> = {
       id: uid("edge"),
@@ -282,13 +238,12 @@ function AppInner() {
     };
     return { nodes: [n1, n2], edges: [e1] };
   }, []);
-  
-  const loadedFromStorage = useMemo(() => {
-    return safeParseSnapshot(localStorage.getItem(STORAGE_KEY));
-  }, []);
 
+  const loadedFromStorage = useMemo(() => safeParseSnapshot(localStorage.getItem(STORAGE_KEY)), []);
   const initialForApp: Snapshot = loadedFromStorage ?? initialSnapshot;
 
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
 
   const [history, dispatchHistory] = useReducer(historyReducer, {
     past: [],
@@ -296,11 +251,9 @@ function AppInner() {
     future: [],
   });
 
-  // React Flow 상태 동기화를 위해 present를 source of truth로 둠
   const [nodes, setNodes, onNodesChange] = useNodesState<ConceptNodeData>(history.present.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ConceptEdgeData>(history.present.edges);
 
-  // present 변경 시 nodes/edges도 갱신 (undo/redo)
   React.useEffect(() => {
     setNodes(history.present.nodes);
     setEdges(history.present.edges);
@@ -308,25 +261,16 @@ function AppInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history.present]);
 
-  // 선택 상태
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   const rfWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const nodeTypes = useMemo(
-    () => ({
-      concept: ConceptNodeView,
-    }),
-    []
-  );
+  const nodeTypes = useMemo(() => ({ concept: ConceptNodeView }), []);
 
-  const syncToHistory = useCallback(
-    (nextNodes: Node<ConceptNodeData>[], nextEdges: Edge<ConceptEdgeData>[], record = true) => {
-      dispatchHistory({ type: "SET", snapshot: { nodes: nextNodes, edges: nextEdges }, record });
-    },
-    []
-  );
+  const syncToHistory = useCallback((nextNodes: Node<ConceptNodeData>[], nextEdges: Edge<ConceptEdgeData>[], record = true) => {
+    dispatchHistory({ type: "SET", snapshot: { nodes: nextNodes, edges: nextEdges }, record });
+  }, []);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -344,7 +288,6 @@ function AppInner() {
   );
 
   const addNodeAtCenter = useCallback(() => {
-    // 간단히 화면 중앙 근처에 생성 (정교한 좌표 변환은 나중에 확대 가능)
     const newNode: Node<ConceptNodeData> = {
       id: uid("node"),
       type: "concept",
@@ -412,7 +355,9 @@ function AppInner() {
   const updateSelectedEdge = useCallback(
     (patch: Partial<ConceptEdgeData>) => {
       if (!selectedEdge) return;
-      const nextEdges = edges.map((e) => (e.id === selectedEdge.id ? { ...e, data: { ...(e.data ?? { meta: [] }), ...patch } } : e));
+      const nextEdges = edges.map((e) =>
+        e.id === selectedEdge.id ? { ...e, data: { ...(e.data ?? { meta: [] }), ...patch } } : e
+      );
       syncToHistory(nodes, nextEdges, true);
     },
     [edges, nodes, selectedEdge, syncToHistory]
@@ -448,82 +393,47 @@ function AppInner() {
     [selectedEdge, updateSelectedEdge]
   );
 
+  // ✅ Export 파일명: 시간 기반 규칙으로 변경
   const exportJSON = useCallback(() => {
     const payload: Snapshot = { nodes, edges };
     const text = JSON.stringify(payload, null, 2);
 
-    // navigator.clipboard.writeText(text);
-    // alert("JSON이 클립보드에 복사되었습니다.");
-
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-"); // YYYY-MM-DD-HH-MM-SS
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-    link.download = `shiplog_${Date.now()}.json`;
+    link.download = `btspr-log-${stamp}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
   }, [edges, nodes]);
 
   const importJSON = useCallback(() => {
-    // const text = prompt("붙여넣기: nodes/edges JSON");
-    // if (!text) return;
-    // try {
-    //   const parsed = JSON.parse(text) as Snapshot;
-    //   if (!parsed?.nodes || !parsed?.edges) throw new Error("Invalid shape");
-
-    //   // 최소 방어: type 미지정 노드에 기본 type 부여
-    //   const nextNodes = parsed.nodes.map((n) => ({
-    //     ...n,
-    //     type: (n as any).type ?? "concept",
-    //     data: {
-    //       title: (n as any).data?.title ?? "Untitled",
-    //       color: (n as any).data?.color ?? "gray",
-    //       details: (n as any).data?.details ?? [],
-    //     } satisfies ConceptNodeData,
-    //   }));
-
-    //   const nextEdges = parsed.edges.map((e) => ({
-    //     ...e,
-    //     markerEnd: (e as any).markerEnd ?? { type: MarkerType.ArrowClosed },
-    //     data: {
-    //       meta: (e as any).data?.meta ?? [],
-    //     } satisfies ConceptEdgeData,
-    //   }));
-
-    //   setSelectedNodeId(null);
-    //   setSelectedEdgeId(null);
-    //   syncToHistory(nextNodes, nextEdges, true);
-    // } catch {
-    //   alert("JSON 파싱 실패: 형식을 확인하세요.");
-    // }
-
-    const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".json";
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
+    const inputEl = document.createElement("input");
+    inputEl.type = "file";
+    inputEl.accept = ".json";
+    inputEl.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
         try {
           const text = event.target?.result as string;
           const parsed = JSON.parse(text) as Snapshot;
           if (!parsed?.nodes || !parsed?.edges) throw new Error("Invalid shape");
 
           const nextNodes = parsed.nodes.map((n) => ({
-          ...n,
-          type: (n as any).type ?? "concept",
-          data: {
-            title: (n as any).data?.title ?? "Untitled",
-            color: (n as any).data?.color ?? "gray",
-            details: (n as any).data?.details ?? [],
-          } satisfies ConceptNodeData,
+            ...n,
+            type: (n as any).type ?? "concept",
+            data: {
+              title: (n as any).data?.title ?? "Untitled",
+              color: (n as any).data?.color ?? "gray",
+              details: (n as any).data?.details ?? [],
+            } satisfies ConceptNodeData,
           }));
 
-          const nextEdges = parsed.edges.map((e) => ({
-          ...e,
-          markerEnd: (e as any).markerEnd ?? { type: MarkerType.ArrowClosed },
-          data: {
-            meta: (e as any).data?.meta ?? [],
-          } satisfies ConceptEdgeData,
+          const nextEdges = parsed.edges.map((ed) => ({
+            ...ed,
+            markerEnd: (ed as any).markerEnd ?? { type: MarkerType.ArrowClosed },
+            data: { meta: (ed as any).data?.meta ?? [] } satisfies ConceptEdgeData,
           }));
 
           setSelectedNodeId(null);
@@ -532,10 +442,10 @@ function AppInner() {
         } catch {
           alert("JSON 파싱 실패: 형식을 확인하세요.");
         }
-        };
-        reader.readAsText(file);
       };
-      input.click();
+      reader.readAsText(file);
+    };
+    inputEl.click();
   }, [syncToHistory]);
 
   const onPaneClick = useCallback(() => {
@@ -569,7 +479,6 @@ function AppInner() {
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
-        // 입력창에서의 백스페이스는 제외
         const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
         if (tag === "input" || tag === "textarea") return;
         e.preventDefault();
@@ -577,7 +486,6 @@ function AppInner() {
         return;
       }
       if (e.key.toLowerCase() === "n") {
-        // 폼 입력 중엔 제외
         const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
         if (tag === "input" || tag === "textarea") return;
         addNodeAtCenter();
@@ -586,7 +494,6 @@ function AppInner() {
     [addNodeAtCenter, deleteSelection]
   );
 
-  // 노드 크기 업데이트를 data 변화에 반영하기 위해 style을 계산해 둠 (렌더는 Node 컴포넌트 내부에서)
   const sizedNodes = useMemo(() => {
     return nodes.map((n) => {
       const count = n.data?.details?.length ?? 0;
@@ -603,72 +510,136 @@ function AppInner() {
       style={{
         height: "100vh",
         width: "100vw",
-        display: "grid",
-        gridTemplateColumns: "320px 1fr 360px",
+        display: "flex", // ✅ grid -> flex 로 변경 (Canvas 항상 유지)
+        position: "relative",
         background: "linear-gradient(180deg, rgb(6,10,20), rgb(4,8,14))",
         color: "rgba(255,255,255,0.9)",
         outline: "none",
+        overflow: "hidden",
       }}
     >
-      {/* Left Panel */}
-      <div style={{ borderRight: "1px solid rgba(255,255,255,0.08)", padding: 14 }}>
-        <div style={{ fontWeight: 800, letterSpacing: 0.4, marginBottom: 10 }}>Ship Log Editor</div>
+      {/* 왼쪽 패널이 닫혔을 때 복귀 버튼 (Canvas 위에 떠야 하므로 absolute 유지) */}
+      {!isLeftPanelOpen ? (
+        <button
+          style={{
+            position: "absolute",
+            left: 8,
+            top: 10,
+            zIndex: 20,
+            ...btn,
+            padding: "6px 8px",
+          }}
+          title="Show Ship Log Editor"
+          onClick={() => setIsLeftPanelOpen(true)}
+        >
+          ›
+        </button>
+      ) : null}
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          <button onClick={addNodeAtCenter} style={btnPrimary}>
-            + Node (N)
-          </button>
-          <button onClick={deleteSelection} style={btnDanger}>
-            Delete (Del)
-          </button>
-          <button onClick={() => dispatchHistory({ type: "UNDO" })} style={btn}>
-            Undo
-          </button>
-          <button onClick={() => dispatchHistory({ type: "REDO" })} style={btn}>
-            Redo
-          </button>
-        </div>
+      {!isRightPanelOpen ? (
+        <button
+          style={{
+            position: "absolute",
+            right: 8,
+            top: 10,
+            zIndex: 20,
+            ...btn,
+            padding: "6px 8px",
+          }}
+          title="Show Inspector"
+          onClick={() => setIsRightPanelOpen(true)}
+        >
+          ‹
+        </button>
+      ) : null}
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          <button onClick={exportJSON} style={btn}>
-            Export JSON
-          </button>
-          <button onClick={importJSON} style={btn}>
-            Import JSON
-          </button>
-        </div>
+      {/* LEFT PANEL */}
+      {isLeftPanelOpen ? (
+        <div style={{ width: 320, flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.08)", padding: 14, overflow: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, letterSpacing: 0.4 }}>Ship Log Editor</div>
+            <button style={{ ...btn, padding: "6px 8px" }} title="Hide panel" onClick={() => setIsLeftPanelOpen(false)}>
+              ‹
+            </button>
+          </div>
 
-        <div style={{ opacity: 0.85, fontSize: 12, lineHeight: 1.5 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>사용법</div>
-          <div>• 노드 클릭 → 오른쪽에서 제목/라벨/내부정보 편집</div>
-          <div>• 노드끼리 드래그 연결 → 화살표 생성</div>
-          <div>• 엣지 클릭 → 오른쪽에서 엣지 메타 편집</div>
-          <div>• 노드 크기 = 내부정보 개수에 비례</div>
-        </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <button onClick={addNodeAtCenter} style={btnPrimary}>
+              + Node (N)
+            </button>
+            <button onClick={deleteSelection} style={btnDanger}>
+              Delete (Del)
+            </button>
+            <button onClick={() => dispatchHistory({ type: "UNDO" })} style={btn}>
+              Undo
+            </button>
+            <button onClick={() => dispatchHistory({ type: "REDO" })} style={btn}>
+              Redo
+            </button>
+          </div>
 
-        <div style={{ marginTop: 16, opacity: 0.9, fontSize: 12 }}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Color Labels</div>
-          <div style={{ display: "grid", gap: 8 }}>
-            {(["purple", "orange", "green", "blue", "gray", "red","yellow","teal",] as ColorLabel[]).map((c) => (
-              <div key={c} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: colorPalette[c].border, display: "inline-block" }} />
-                <span style={{ textTransform: "uppercase", opacity: 0.85 }}>{c}</span>
-              </div>
-            ))}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            <button onClick={exportJSON} style={btn}>
+              Export JSON
+            </button>
+            <button onClick={importJSON} style={btn}>
+              Import JSON
+            </button>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <a href={DRIVE_FOLDER_URL} target="_blank" rel="noreferrer" style={{ ...btn, display: "inline-block", textDecoration: "none" }}>
+              Open Drive Folder
+            </a>
+          </div>
+
+          <div style={{ opacity: 0.85, fontSize: 12, lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>사용법</div>
+            <div>• 노드 클릭 → 오른쪽에서 제목/라벨/내부정보 편집</div>
+            <div>• 노드끼리 드래그 연결 → 화살표 생성</div>
+            <div>• 엣지 클릭 → 오른쪽에서 엣지 메타 편집</div>
+            <div>• 노드 크기 = 내부정보 개수에 비례</div>
+          </div>
+
+          <div style={{ marginTop: 16, opacity: 0.9, fontSize: 12 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>단축키</div>
+            <div>• N: 노드 추가</div>
+            <div>• Delete: 선택 삭제</div>
+            <div>• Ctrl/Cmd+Z: Undo</div>
+            <div>• Ctrl/Cmd+Shift+Z: Redo</div>
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <div style={label}>Node Color Legend</div>
+            <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+              {(Object.keys(colorPalette) as ColorLabel[]).map((c) => (
+                <div key={c} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                  <span
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: 3,
+                      background: colorPalette[c].header,
+                      border: `1px solid ${colorPalette[c].border}`,
+                      display: "inline-block",
+                    }}
+                  />
+                  <span style={{ textTransform: "uppercase", opacity: 0.85 }}>{c}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
-      {/* Canvas */}
-      <div style={{ position: "relative" }}>
+      {/* CANVAS (항상 존재) */}
+      <div style={{ flex: 1, position: "relative" }}>
         <ReactFlow
           nodes={sizedNodes}
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={(changes: NodeChange[]) => {
             onNodesChange(changes);
-            // onNodesChange는 내부적으로 setNodes만 바꾸므로, 실제 확정은 drag stop 등에서 기록하는 편이 이상적.
-            // MVP에서는 change 발생 후 즉시 기록(기록량 많아질 수 있음). 필요한 경우 "onNodeDragStop"로 최적화 가능.
           }}
           onEdgesChange={(changes: EdgeChange[]) => {
             onEdgesChange(changes);
@@ -684,22 +655,10 @@ function AppInner() {
           }}
           style={{ background: "transparent" }}
         >
-          {/*
-          <MiniMap
-            nodeStrokeColor={(n: Node) => {
-              const c = (n.data as any)?.color as ColorLabel | undefined;
-              return c ? colorPalette[c].border : "#9ca3af";
-            }}
-            nodeColor={(n: Node) => {
-              const c = (n.data as any)?.color as ColorLabel | undefined;
-              return c ? colorPalette[c].header : "rgba(156,163,175,0.18)";
-            }}
-            maskColor="rgba(0,0,0,0.35)"
-          />
-          */}
           <Controls />
           <Background gap={24} size={1} />
         </ReactFlow>
+
         {/* Bottom Details Panel */}
         {selectedNode ? (
           <div
@@ -731,13 +690,8 @@ function AppInner() {
                 background: "rgba(255,255,255,0.05)",
               }}
             >
-              <div style={{ fontWeight: 800, fontSize: 13 }}>
-                {selectedNode.data.title} — Details
-              </div>
-              <button
-                style={btn}
-                onClick={() => setSelectedNodeId(null)}
-              >
+              <div style={{ fontWeight: 800, fontSize: 13 }}>{selectedNode.data.title} — Details</div>
+              <button style={btn} onClick={() => setSelectedNodeId(null)}>
                 Close
               </button>
             </div>
@@ -749,7 +703,7 @@ function AppInner() {
                 fontSize: 13,
                 lineHeight: 1.55,
                 color: "rgba(255,255,255,0.85)",
-                whiteSpace: "pre-wrap", // ✅ 줄바꿈 유지 핵심
+                whiteSpace: "pre-wrap",
               }}
             >
               {selectedNode.data.details.length === 0 ? (
@@ -757,9 +711,7 @@ function AppInner() {
               ) : (
                 selectedNode.data.details.map((d, i) => (
                   <div key={d.id} style={{ marginBottom: 10 }}>
-                    <div style={{ fontWeight: 800, marginBottom: 4 }}>
-                      #{i + 1}
-                    </div>
+                    <div style={{ fontWeight: 800, marginBottom: 4 }}>#{i + 1}</div>
                     <div>{d.text}</div>
                   </div>
                 ))
@@ -767,38 +719,37 @@ function AppInner() {
             </div>
           </div>
         ) : null}
-
       </div>
 
-      {/* Right Panel (Inspector) */}
-      <div style={{ borderLeft: "1px solid rgba(255,255,255,0.08)", padding: 14, overflow: "auto" }}>
-        <div style={{ fontWeight: 800, letterSpacing: 0.4, marginBottom: 10 }}>Inspector</div>
-
-        {!selectedNode && !selectedEdge ? (
-          <div style={{ opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>
-            노드 또는 엣지를 선택하면 상세 편집이 표시됩니다.
+      {/* RIGHT PANEL */}
+      {isRightPanelOpen ? (
+        <div style={{ width: 360, flexShrink: 0, borderLeft: "1px solid rgba(255,255,255,0.08)", padding: 14, overflow: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, letterSpacing: 0.4 }}>Inspector</div>
+            <button style={{ ...btn, padding: "6px 8px" }} title="Hide panel" onClick={() => setIsRightPanelOpen(false)}>
+              ›
+            </button>
           </div>
-        ) : null}
 
-        {selectedNode ? (
-          <NodeInspector
-            node={selectedNode}
-            onChange={(patch) => updateSelectedNode(patch)}
-            onAddDetail={addNodeDetail}
-            onUpdateDetail={updateNodeDetail}
-            onDeleteDetail={deleteNodeDetail}
-          />
-        ) : null}
+          {!selectedNode && !selectedEdge ? (
+            <div style={{ opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>노드 또는 엣지를 선택하면 상세 편집이 표시됩니다.</div>
+          ) : null}
 
-        {selectedEdge ? (
-          <EdgeInspector
-            edge={selectedEdge}
-            onAddMeta={addEdgeMeta}
-            onUpdateMeta={updateEdgeMeta}
-            onDeleteMeta={deleteEdgeMeta}
-          />
-        ) : null}
-      </div>
+          {selectedNode ? (
+            <NodeInspector
+              node={selectedNode}
+              onChange={(patch) => updateSelectedNode(patch)}
+              onAddDetail={addNodeDetail}
+              onUpdateDetail={updateNodeDetail}
+              onDeleteDetail={deleteNodeDetail}
+            />
+          ) : null}
+
+          {selectedEdge ? (
+            <EdgeInspector edge={selectedEdge} onAddMeta={addEdgeMeta} onUpdateMeta={updateEdgeMeta} onDeleteMeta={deleteEdgeMeta} />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -814,7 +765,7 @@ function NodeInspector(props: {
   const [newDetail, setNewDetail] = useState("");
 
   const [localTitle, setLocalTitle] = useState(node.data.title);
-  
+
   useEffect(() => {
     setLocalTitle(node.data.title);
   }, [node.id, node.data.title]);
@@ -834,11 +785,11 @@ function NodeInspector(props: {
         <div style={label}>Title</div>
         <input
           style={input}
-          value={localTitle} // 3. value는 로컬 상태를 바라보게 함
+          value={localTitle}
           onChange={(e) => {
             const val = e.target.value;
-            setLocalTitle(val); // 로컬 상태 업데이트 (한글 안 씹힘)
-            onChange({ title: val }); // 부모 상태 업데이트
+            setLocalTitle(val);
+            onChange({ title: val });
           }}
           placeholder="제목"
         />
@@ -846,17 +797,13 @@ function NodeInspector(props: {
 
       <div style={{ marginTop: 10 }}>
         <div style={label}>Color Label</div>
-      <select
-        style={input}
-        value={node.data.color}
-        onChange={(e) => onChange({ color: e.target.value as ColorLabel })}
-      >
-        {(Object.keys(colorPalette) as ColorLabel[]).map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+        <select style={input} value={node.data.color} onChange={(e) => onChange({ color: e.target.value as ColorLabel })}>
+          {(Object.keys(colorPalette) as ColorLabel[]).map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div style={{ marginTop: 14 }}>
@@ -866,12 +813,7 @@ function NodeInspector(props: {
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-          <input
-            style={{ ...input, flex: 1 }}
-            value={newDetail}
-            onChange={(e) => setNewDetail(e.target.value)}
-            placeholder="내부정보 추가"
-          />
+          <input style={{ ...input, flex: 1 }} value={newDetail} onChange={(e) => setNewDetail(e.target.value)} placeholder="내부정보 추가" />
           <button
             style={btnPrimary}
             onClick={() => {
@@ -921,12 +863,7 @@ function EdgeInspector(props: {
       <div style={{ marginTop: 14 }}>
         <div style={label}>Edge Meta (count 표기 없음)</div>
         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-          <input
-            style={{ ...input, flex: 1 }}
-            value={newMeta}
-            onChange={(e) => setNewMeta(e.target.value)}
-            placeholder="엣지 내부정보 추가"
-          />
+          <input style={{ ...input, flex: 1 }} value={newMeta} onChange={(e) => setNewMeta(e.target.value)} placeholder="엣지 내부정보 추가" />
           <button
             style={btnPrimary}
             onClick={() => {
